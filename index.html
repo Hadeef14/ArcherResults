@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcherResults — Archery Tournament Results, Made Simple</title>
+<meta name="description" content="A simple, free platform for archery tournament results management. International, multilingual, no account needed.">
+<meta name="author" content="Hadeef, Azlan">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Ccircle cx='13' cy='13' r='12' fill='%23ffffff'/%3E%3Ccircle cx='13' cy='13' r='12' fill='none' stroke='%230e7c66' stroke-width='2'/%3E%3Ccircle cx='13' cy='13' r='7.5' fill='none' stroke='%230e7c66' stroke-width='2'/%3E%3Ccircle cx='13' cy='13' r='3' fill='%230e7c66'/%3E%3C/svg%3E">
+<script>
+/* apply saved theme before first paint (avoids flash) */
+try { if (localStorage.getItem('archerresults.theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
+</script>
+<style>
+  /* ============ Design tokens ============ */
+  :root {
+    --accent: #0e7c66;
+    --accent-dark: #0a5c4c;
+    --accent-soft: rgba(14,124,102,.08);
+    --ink: #1c2430;
+    --ink-soft: #5b6675;
+    --bg: #ffffff;
+    --bg-soft: #f4f7f6;
+    --card: #ffffff;
+    --panel: #1c2430;
+    --line: #e3e8e6;
+    --danger: #d33;
+    --radius: 14px;
+    --maxw: 1000px;
+  }
+  [data-theme="dark"] {
+    --accent: #2fb08f;
+    --accent-dark: #27987a;
+    --accent-soft: rgba(47,176,143,.12);
+    --ink: #e8edf3;
+    --ink-soft: #9aa8b6;
+    --bg: #0f151b;
+    --bg-soft: #141c24;
+    --card: #17202a;
+    --panel: #1b242e;
+    --line: #25303b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.6;
+    transition: background .25s ease, color .25s ease;
+  }
+
+  ::selection { background: rgba(47,176,143,.35); }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  button { font: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  /* ============ Scroll reveal ============ */
+  .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .js .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .js .reveal { opacity: 1; transform: none; transition: none; }
+    * { animation: none !important; }
+  }
+
+  /* ============ Header ============ */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 62px; gap: 16px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 1.05rem; color: var(--ink);
+  }
+  .brand:hover { text-decoration: none; }
+  .brand svg { display: block; }
+  .logo-ring { stroke: var(--accent); }
+  .logo-dot  { fill: var(--accent); }
+  nav ul { display: flex; gap: 24px; list-style: none; }
+  nav a { color: var(--ink-soft); font-size: .95rem; font-weight: 500; }
+  nav a:hover { color: var(--accent); text-decoration: none; }
+  .controls { display: flex; align-items: center; gap: 8px; }
+  .lang-sel {
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: .85rem;
+    cursor: pointer;
+  }
+  .icon-btn {
+    width: 34px; height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+    font-size: .95rem;
+    line-height: 1;
+  }
+  .icon-btn:hover { background: var(--bg-soft); }
+  .btn-sm {
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: .86rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    white-space: nowrap;
+  }
+  .btn-sm:hover { background: var(--accent-dark); }
+
+  /* ============ Hero ============ */
+  .hero {
+    position: relative;
+    padding: 96px 0 60px;
+    text-align: center;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 85% 10%, var(--accent-soft), transparent 45%),
+      radial-gradient(circle at 10% 90%, var(--accent-soft), transparent 45%);
+  }
+  .hero .wrap { position: relative; z-index: 1; }
+  .hero h1 {
+    font-size: clamp(2rem, 4.8vw, 3.2rem);
+    line-height: 1.12;
+    letter-spacing: -.02em;
+    max-width: 680px;
+    margin: 0 auto 16px;
+  }
+  .hero p {
+    color: var(--ink-soft);
+    font-size: 1.12rem;
+    max-width: 540px;
+    margin: 0 auto 34px;
+  }
+  .btn {
+    display: inline-block;
+    padding: 13px 28px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: .98rem;
+    transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+    border: none;
+  }
+  .btn:hover { text-decoration: none; transform: translateY(-2px); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 6px 18px var(--accent-soft); }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-ghost { color: var(--accent); border: 1px solid var(--accent); margin-left: 10px; background: transparent; }
+  .btn-ghost:hover { background: var(--accent-soft); }
+
+  /* floating target art */
+  .art { position: absolute; color: var(--accent); pointer-events: none; }
+  .art-rings { right: 4%; top: 8%; opacity: .55; animation: float 7s ease-in-out infinite; }
+  .art-arrow { left: 4%; bottom: 10%; opacity: .45; animation: float 7s ease-in-out 1.4s infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+  @media (max-width: 900px) { .art { display: none; } }
+
+  /* ============ Stats strip ============ */
+  .stats {
+    display: flex; justify-content: center; align-items: baseline;
+    gap: 56px; flex-wrap: wrap;
+    padding: 26px 0 6px;
+  }
+  .stat { text-align: center; }
+  .stat strong { display: block; font-size: 1.7rem; letter-spacing: -.02em; color: var(--accent); }
+  .stat span { font-size: .88rem; color: var(--ink-soft); }
+
+  /* ============ Sections ============ */
+  section { padding: 60px 0; }
+  section.soft { background: var(--bg-soft); }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 26px; gap: 12px; flex-wrap: wrap;
+  }
+  h2 { font-size: 1.55rem; letter-spacing: -.01em; }
+  .section-head a { font-size: .9rem; font-weight: 500; }
+  .db-pill {
+    display: inline-flex; align-items: center;
+    font-size: .75rem; font-weight: 600;
+    color: var(--ink-soft);
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 12px;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  .db-pill.on { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+
+  /* ============ Auth (sign in / sign up) ============ */
+  .btn-sm.ghost { background: var(--accent-soft); color: var(--accent); }
+  .btn-sm.ghost:hover { background: var(--accent); color: #fff; }
+  .user-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    max-width: 150px;
+    font-size: .8rem; font-weight: 600; color: var(--ink-soft);
+    background: var(--bg-soft); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 12px;
+    white-space: nowrap; overflow: hidden;
+  }
+  .user-chip .umail { overflow: hidden; text-overflow: ellipsis; }
+  .auth-links { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .linklike {
+    background: none; border: none; color: var(--accent);
+    font-size: .82rem; font-weight: 600; padding: 0;
+  }
+  .linklike:hover { text-decoration: underline; }
+  .form-error { color: #e5484d; font-size: .82rem; margin: 2px 0 8px; }
+  .form-error.ok { color: var(--accent); }
+
+  /* ============ Contact cards ============ */
+  .contact-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .contact-card {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; color: var(--ink);
+    transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+  }
+  .contact-card:hover {
+    text-decoration: none; border-color: var(--accent);
+    transform: translateY(-3px); box-shadow: 0 10px 24px var(--accent-soft);
+  }
+  .contact-card .cico { font-size: 1.6rem; }
+  .contact-card h3 { font-size: .95rem; }
+  .contact-card p { color: var(--ink-soft); font-size: .9rem; word-break: break-all; }
+  @media (max-width: 640px) {
+    .contact-cards { grid-template-columns: 1fr; }
+    .user-chip .umail { display: none; }
+    .user-chip { max-width: none; }
+  }
+  .live-dot {
+    display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+    background: #e5484d; margin-right: 9px;
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+  /* ============ Competition cards ============ */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+  }
+  .card {
+    position: relative;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    color: var(--ink);
+    display: block;
+  }
+  .card::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), #7fd6c2);
+    opacity: 0;
+    transition: opacity .18s ease;
+  }
+  a.card:hover {
+    text-decoration: none;
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px var(--accent-soft);
+  }
+  a.card:hover::before { opacity: 1; }
+  .card .flag { font-size: 1.5rem; }
+  .card h3 { font-size: 1.04rem; margin: 10px 0 4px; line-height: 1.35; }
+  .card .where { color: var(--ink-soft); font-size: .88rem; }
+  .card .when { color: var(--accent); font-size: .84rem; font-weight: 600; margin-top: 10px; }
+
+  /* user-created cards */
+  .card.mine { cursor: default; border-style: dashed; }
+  .card.mine .mine-tag {
+    display: inline-block;
+    font-size: .72rem; font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 2px 10px;
+    margin-top: 10px;
+  }
+  .card-del {
+    position: absolute; top: 10px; right: 10px;
+    width: 26px; height: 26px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 1.1rem; line-height: 1;
+  }
+  .card-del:hover { background: rgba(229,72,77,.15); color: #ff6b6e; }
+
+  /* ============ Upcoming list ============ */
+  .rows { border-top: 1px solid var(--line); }
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 10px 14px 14px;
+    border-bottom: 1px solid var(--line);
+    border-left: 3px solid transparent;
+    color: var(--ink);
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .row:hover { text-decoration: none; background: var(--accent-soft); border-left-color: var(--accent); }
+  .row .flag { font-size: 1.2rem; flex-shrink: 0; }
+  .row .name { flex: 1; font-size: .95rem; }
+  .row .date { color: var(--ink-soft); font-size: .85rem; white-space: nowrap; }
+
+  /* ============ How it works ============ */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .step:hover { transform: translateY(-3px); box-shadow: 0 10px 24px var(--accent-soft); }
+  .step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-weight: 700; font-size: .92rem;
+    margin-bottom: 12px;
+  }
+  .step h3 { font-size: 1.02rem; margin-bottom: 4px; }
+  .step p { color: var(--ink-soft); font-size: .9rem; }
+
+  /* ============ Download ============ */
+  .download-box {
+    background: var(--panel);
+    color: var(--ink);
+    border-radius: var(--radius);
+    padding: 42px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+  }
+  .download-box h2 { margin-bottom: 6px; }
+  .download-box p { color: var(--ink-soft); font-size: .95rem; }
+  .btn-light { background: #fff; color: #1c2430; }
+  .btn-light:hover { background: #eef2f0; }
+
+  /* ============ Footer ============ */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 34px 0 30px;
+    color: var(--ink-soft);
+    font-size: .88rem;
+    text-align: center;
+  }
+  .made {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+  footer ul {
+    display: flex; justify-content: center; gap: 20px; list-style: none; flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  footer a { color: var(--ink-soft); }
+  footer a:hover { color: var(--accent); }
+
+  /* ============ Create-competition dialog ============ */
+  dialog {
+    border: none;
+    border-radius: 16px;
+    padding: 0;
+    width: min(440px, calc(100vw - 40px));
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 24px 70px rgba(0,0,0,.35);
+  }
+  dialog::backdrop { background: rgba(10,15,20,.5); backdrop-filter: blur(3px); }
+  .dlg { padding: 28px; }
+  .dlg h3 { font-size: 1.25rem; margin-bottom: 4px; }
+  .dlg .sub { color: var(--ink-soft); font-size: .9rem; margin-bottom: 20px; }
+  .dlg label {
+    display: block;
+    font-size: .85rem; font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .dlg input, .dlg select {
+    display: block; width: 100%;
+    margin-top: 5px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .dlg input:focus, .dlg select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 0;
+    border-color: var(--accent);
+  }
+  .dlg .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dlg menu {
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 8px; padding: 0; list-style: none;
+  }
+  .dlg .btn-cancel {
+    background: transparent; border: 1px solid var(--line);
+    border-radius: 999px; padding: 10px 20px;
+    color: var(--ink-soft); font-weight: 600;
+  }
+  .dlg .btn-cancel:hover { background: var(--bg-soft); }
+  .hint { color: var(--ink-soft); font-size: .8rem; margin-top: 12px; text-align: center; }
+
+  /* ============ Small screens ============ */
+  @media (max-width: 640px) {
+    nav ul { display: none; }
+    .hero { padding: 64px 0 46px; }
+    .hero .btn-ghost { margin-left: 0; margin-top: 10px; }
+    .stats { gap: 28px; }
+    .download-box { padding: 28px; }
+    .row .date { display: none; }
+    .steps { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#">
+      <!-- Target logo -->
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+        <circle class="logo-ring" cx="13" cy="13" r="12" fill="none" stroke-width="2"/>
+        <circle class="logo-ring" cx="13" cy="13" r="7.5" fill="none" stroke-width="2"/>
+        <circle class="logo-dot" cx="13" cy="13" r="3"/>
+      </svg>
+      ArcherResults
+    </a>
+    <nav>
+      <ul>
+        <li><a href="#live" data-i18n="nav_competitions">Competitions</a></li>
+        <li><a href="#upcoming" data-i18n="nav_calendar">Calendar</a></li>
+        <li><a href="#how" data-i18n="nav_how">How it works</a></li>
+        <li><a href="#download" data-i18n="nav_software">Software</a></li>
+        <li><a href="#contact" data-i18n="nav_contact">Contact</a></li>
+      </ul>
+    </nav>
+    <div class="controls">
+      <select id="langSel" class="lang-sel" aria-label="Language">
+        <option value="en">English</option>
+        <option value="ms">Bahasa Melayu</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="zh">中文</option>
+      </select>
+      <button id="themeBtn" class="icon-btn" aria-label="Toggle dark mode">🌙</button>
+      <button id="signInBtn" class="btn-sm ghost" data-i18n="auth_btn_signin">Sign in</button>
+      <span id="userChip" class="user-chip" hidden>👤 <span id="userEmail" class="umail"></span></span>
+      <button id="signOutBtn" class="btn-sm ghost" data-i18n="signout" hidden>Sign out</button>
+      <button class="btn-sm" data-open-create data-i18n="nav_new">＋ New competition</button>
+    </div>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<div class="hero">
+  <!-- decorative floating target + arrow -->
+  <svg class="art art-rings" width="200" height="200" viewBox="0 0 200 200" aria-hidden="true">
+    <g fill="none" stroke="currentColor">
+      <circle cx="100" cy="100" r="92" stroke-width="7" opacity=".16"/>
+      <circle cx="100" cy="100" r="62" stroke-width="7" opacity=".24"/>
+      <circle cx="100" cy="100" r="34" stroke-width="7" opacity=".34"/>
+    </g>
+    <circle cx="100" cy="100" r="11" fill="currentColor" opacity=".45"/>
+  </svg>
+  <svg class="art art-arrow" width="150" height="150" viewBox="0 0 160 160" aria-hidden="true">
+    <g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+      <path d="M20 140 L134 26"/>
+      <path d="M134 26 l-22 5"/>
+      <path d="M134 26 l-5 22"/>
+      <path d="M20 140 l16 -3"/>
+      <path d="M20 140 l3 -16"/>
+    </g>
+  </svg>
+
+  <div class="wrap">
+    <h1 data-i18n="hero_title">Archery tournament results, made simple.</h1>
+    <p data-i18n="hero_sub">Free, open software to run archery competitions — from club shoots to international events. Create a competition in under a minute.</p>
+    <button class="btn btn-primary" data-open-create data-i18n="hero_create">＋ Create a competition</button>
+    <a class="btn btn-ghost" href="#live" data-i18n="hero_view">View competitions</a>
+
+    <div class="stats">
+      <div class="stat"><strong>12,000+</strong><span data-i18n="s1a">tournaments run</span></div>
+      <div class="stat"><strong>130+</strong><span data-i18n="s2a">countries</span></div>
+      <div class="stat"><strong>100%</strong><span data-i18n="s3a">free — forever</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LIVE COMPETITIONS ================= -->
+<section id="live">
+  <div class="wrap reveal">
+    <div class="section-head">
+      <h2><span class="live-dot"></span><span data-i18n="live_title">Live competitions</span><span id="dbStatus" class="db-pill">💾 …</span></h2>
+      <a href="#" data-i18n="live_all">See all →</a>
+    </div>
+    <!-- Your created competitions appear here (saved in this browser) -->
+    <div class="cards" id="liveCards">
+      <!-- Sample cards — edit or remove freely -->
+      <a class="card" href="#">
+        <div class="flag">🇸🇳</div>
+        <h3>Dakar 2026 Youth Olympic Games</h3>
+        <div class="where">Dakar, Senegal</div>
+        <div class="when">5 – 10 Nov 2026</div>
+      </a>
+      <a class="card" href="#">
+        <div class="flag">🇳🇴</div>
+        <h3>Online Winter Series 2026/27</h3>
+        <div class="where">Bønsmoen, Norway</div>
+        <div class="when">Nov 2026 – Mar 2027</div>
+      </a>
+      <a class="card" href="#">
+        <div class="flag">🇦🇹</div>
+        <h3>Hallenlandesliga 2026/27</h3>
+        <div class="where">Laakirchen, Austria</div>
+        <div class="when">Nov 2026 – Feb 2027</div>
+      </a>
+      <a class="card" href="#">
+        <div class="flag">🇺🇸</div>
+        <h3>Collegiate Cup 2026</h3>
+        <div class="where">Clubs around the USA</div>
+        <div class="when">Oct – Dec 2026</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= UPCOMING / RECENT ================= -->
+<section id="upcoming" class="soft">
+  <div class="wrap reveal">
+    <div class="section-head">
+      <h2 data-i18n="upcoming_title">Coming soon & just finished</h2>
+    </div>
+    <div class="rows">
+      <a class="row" href="#">
+        <span class="flag">🇫🇷</span>
+        <span class="name">Rennes – Menhir Cup, Stage 1</span>
+        <span class="date">8 Nov</span>
+      </a>
+      <a class="row" href="#">
+        <span class="flag">🇮🇳</span>
+        <span class="name">NTPC Senior National Archery Championship</span>
+        <span class="date">11 – 18 Nov</span>
+      </a>
+      <a class="row" href="#">
+        <span class="flag">🇵🇱</span>
+        <span class="name">Niepodległościowe Zawody Łucznicze 2026</span>
+        <span class="date">11 Nov</span>
+      </a>
+      <a class="row" href="#">
+        <span class="flag">🇱🇻</span>
+        <span class="name">Ropažu kauss 2026</span>
+        <span class="date">7 – 8 Nov</span>
+      </a>
+      <a class="row" href="#">
+        <span class="flag">🇨🇱</span>
+        <span class="name">Torneo Regional: Etapa 08/2026</span>
+        <span class="date">7 – 8 Nov</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section id="how">
+  <div class="wrap reveal">
+    <div class="section-head">
+      <h2 data-i18n="how_title">Run a competition in 3 steps</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="num">1</span>
+        <h3 data-i18n="how1_t">Create it</h3>
+        <p data-i18n="how1_p">Click “New competition”, fill in the name, country, venue and dates. Takes less than a minute.</p>
+      </div>
+      <div class="step">
+        <span class="num">2</span>
+        <h3 data-i18n="how2_t">Enter scores</h3>
+        <p data-i18n="how2_p">Add archers and record their arrow scores as the shooting happens — per end, per distance.</p>
+      </div>
+      <div class="step">
+        <span class="num">3</span>
+        <h3 data-i18n="how3_t">Publish results</h3>
+        <p data-i18n="how3_p">Standings, brackets and rankings update automatically and can be shared with a single link.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section id="contact" class="soft">
+  <div class="wrap reveal">
+    <div class="section-head">
+      <h2 data-i18n="contact_title">Need help?</h2>
+    </div>
+    <p style="color:var(--ink-soft);margin:-10px 0 22px" data-i18n="contact_sub">Questions or issues with a competition? Reach us any time.</p>
+    <div class="contact-cards">
+      <a class="contact-card" href="mailto:adminhadeef.work@gmail.com">
+        <span class="cico">📧</span>
+        <div>
+          <h3 data-i18n="contact_email_lbl">Email</h3>
+          <p>adminhadeef.work@gmail.com</p>
+        </div>
+      </a>
+      <a class="contact-card" href="tel:+60173886130">
+        <span class="cico">📱</span>
+        <div>
+          <h3 data-i18n="contact_phone_lbl">Phone / WhatsApp</h3>
+          <p>017-388 6130</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DOWNLOAD ================= -->
+<section id="download">
+  <div class="wrap reveal">
+    <div class="download-box">
+      <div>
+        <h2 data-i18n="dl_title">Get the software</h2>
+        <p data-i18n="dl_text">Latest version: rev 11 — 4 November 2026. Free and open source.</p>
+      </div>
+      <a class="btn btn-light" href="#" data-i18n="dl_btn">Download</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="wrap">
+    <p class="made" data-i18n="foot_made">Made with 🎯 by Hadeef & Azlan</p>
+    <span data-i18n="foot_tag">© 2026 ArcherResults — a simplified tribute to ianseo.net</span>
+    <ul>
+      <li><a href="#live" data-i18n="nav_competitions">Competitions</a></li>
+      <li><a href="#download" data-i18n="nav_software">Software</a></li>
+      <li><a href="#" data-i18n="foot_privacy">Privacy</a></li>
+      <li><a href="#contact" data-i18n="nav_contact">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+
+<!-- ================= CREATE-COMPETITION DIALOG ================= -->
+<dialog id="createDialog">
+  <form class="dlg" id="createForm">
+    <h3 data-i18n="dlg_title">Create a competition</h3>
+    <p class="sub" data-i18n="dlg_sub">Fill in the basics — you can change everything later.</p>
+
+    <label><span data-i18n="lbl_name">Competition name</span>
+      <input name="name" required maxlength="80" data-i18n-ph="ph_name" placeholder="e.g. Spring Club Trophy 2027" autocomplete="off">
+    </label>
+
+    <label><span data-i18n="lbl_country">Country</span>
+      <select name="flag">
+        <option value="🌍|International" data-i18n="opt_int">🌍 International</option>
+        <optgroup label="Africa">
+          <option value="🇩🇿|Algeria">🇩🇿 Algeria</option>
+          <option value="🇪🇬|Egypt">🇪🇬 Egypt</option>
+          <option value="🇰🇪|Kenya">🇰🇪 Kenya</option>
+          <option value="🇲🇦|Morocco">🇲🇦 Morocco</option>
+          <option value="🇳🇬|Nigeria">🇳🇬 Nigeria</option>
+          <option value="🇿🇦|South Africa">🇿🇦 South Africa</option>
+        </optgroup>
+        <optgroup label="Americas">
+          <option value="🇦🇷|Argentina">🇦🇷 Argentina</option>
+          <option value="🇧🇷|Brazil">🇧🇷 Brazil</option>
+          <option value="🇨🇦|Canada">🇨🇦 Canada</option>
+          <option value="🇨🇱|Chile">🇨🇱 Chile</option>
+          <option value="🇨🇴|Colombia">🇨🇴 Colombia</option>
+          <option value="🇲🇽|Mexico">🇲🇽 Mexico</option>
+          <option value="🇺🇸|USA">🇺🇸 USA</option>
+        </optgroup>
+        <optgroup label="Asia">
+          <option value="🇧🇩|Bangladesh">🇧🇩 Bangladesh</option>
+          <option value="🇨🇳|China">🇨🇳 China</option>
+          <option value="🇮🇳|India">🇮🇳 India</option>
+          <option value="🇮🇩|Indonesia">🇮🇩 Indonesia</option>
+          <option value="🇮🇷|Iran">🇮🇷 Iran</option>
+          <option value="🇯🇵|Japan">🇯🇵 Japan</option>
+          <option value="🇰🇷|Korea">🇰🇷 Korea</option>
+          <option value="🇲🇾|Malaysia">🇲🇾 Malaysia</option>
+          <option value="🇵🇰|Pakistan">🇵🇰 Pakistan</option>
+          <option value="🇸🇬|Singapore">🇸🇬 Singapore</option>
+          <option value="🇹🇭|Thailand">🇹🇭 Thailand</option>
+          <option value="🇹🇷|Türkiye">🇹🇷 Türkiye</option>
+          <option value="🇻🇳|Vietnam">🇻🇳 Vietnam</option>
+        </optgroup>
+        <optgroup label="Europe">
+          <option value="🇦🇹|Austria">🇦🇹 Austria</option>
+          <option value="🇧🇪|Belgium">🇧🇪 Belgium</option>
+          <option value="🇭🇷|Croatia">🇭🇷 Croatia</option>
+          <option value="🇩🇰|Denmark">🇩🇰 Denmark</option>
+          <option value="🇫🇷|France">🇫🇷 France</option>
+          <option value="🇩🇪|Germany">🇩🇪 Germany</option>
+          <option value="🇬🇷|Greece">🇬🇷 Greece</option>
+          <option value="🇮🇹|Italy">🇮🇹 Italy</option>
+          <option value="🇱🇻|Latvia">🇱🇻 Latvia</option>
+          <option value="🇳🇱|Netherlands">🇳🇱 Netherlands</option>
+          <option value="🇳🇴|Norway">🇳🇴 Norway</option>
+          <option value="🇵🇱|Poland">🇵🇱 Poland</option>
+          <option value="🇵🇹|Portugal">🇵🇹 Portugal</option>
+          <option value="🇸🇪|Sweden">🇸🇪 Sweden</option>
+          <option value="🇨🇭|Switzerland">🇨🇭 Switzerland</option>
+          <option value="🇬🇧|Great Britain">🇬🇧 Great Britain</option>
+          <option value="🇺🇦|Ukraine">🇺🇦 Ukraine</option>
+        </optgroup>
+        <optgroup label="Oceania">
+          <option value="🇦🇺|Australia">🇦🇺 Australia</option>
+          <option value="🇳🇿|New Zealand">🇳🇿 New Zealand</option>
+        </optgroup>
+      </select>
+    </label>
+
+    <label><span data-i18n="lbl_venue">Venue / city</span>
+      <input name="where" maxlength="80" data-i18n-ph="ph_venue" placeholder="e.g. Riverside Archery Club" autocomplete="off">
+    </label>
+
+    <div class="two">
+      <label><span data-i18n="lbl_starts">Starts</span>
+        <input type="date" name="start" required>
+      </label>
+      <label><span data-i18n="lbl_ends">Ends (optional)</span>
+        <input type="date" name="end">
+      </label>
+    </div>
+
+    <menu>
+      <button type="button" class="btn-cancel" id="cancelCreate" data-i18n="btn_cancel">Cancel</button>
+      <button type="submit" class="btn btn-primary" data-i18n="btn_create">Create competition</button>
+    </menu>
+
+    <p class="hint" data-i18n="dlg_hint">Saved in your browser — no account needed.</p>
+  </form>
+</dialog>
+
+<!-- ================= SIGN IN / SIGN UP / RESET DIALOG ================= -->
+<dialog id="authDialog">
+  <form class="dlg" id="authForm">
+    <!-- sign in / sign up view -->
+    <div id="authViews">
+      <h3 id="authTitle">Sign in</h3>
+      <p class="sub" id="authSub">Sign in to create and manage competitions.</p>
+
+      <label><span data-i18n="auth_email">Email</span>
+        <input type="email" name="email" required autocomplete="email">
+      </label>
+      <label><span data-i18n="auth_password">Password</span>
+        <input type="password" name="password" required minlength="6" autocomplete="current-password">
+      </label>
+
+      <p class="form-error" id="authError" hidden></p>
+
+      <menu>
+        <button type="button" class="btn-cancel" id="authCancel" data-i18n="btn_cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="authSubmit">Sign in</button>
+      </menu>
+
+      <div class="auth-links">
+        <button type="button" class="linklike" id="switchAuthMode">New here? Create an account</button>
+        <button type="button" class="linklike" id="forgotBtn" data-i18n="auth_forgot">Forgot password?</button>
+      </div>
+    </div>
+
+    <!-- forgot password: step 1 — request a code -->
+    <div id="resetViews" hidden>
+      <div id="resetStep1">
+        <h3 data-i18n="reset_title">Reset password</h3>
+        <p class="sub" data-i18n="reset_sub">Enter your email and we'll send you a 6-digit code.</p>
+        <label><span data-i18n="auth_email">Email</span>
+          <input type="email" name="remail" required autocomplete="email">
+        </label>
+        <p class="form-error" id="resetError1" hidden></p>
+        <menu>
+          <button type="button" class="btn-cancel" id="resetBack" data-i18n="btn_cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="sendCodeBtn" data-i18n="reset_send">Send code</button>
+        </menu>
+      </div>
+      <!-- step 2 — code + new password -->
+      <div id="resetStep2" hidden>
+        <h3 data-i18n="reset_title">Reset password</h3>
+        <p class="sub" data-i18n="reset_sent_hint">Code sent — check your inbox (and spam folder).</p>
+        <label><span data-i18n="reset_code">6-digit code</span>
+          <input name="rcode" required inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+        </label>
+        <label><span data-i18n="reset_newpw">New password</span>
+          <input type="password" name="rpassword" required minlength="6" autocomplete="new-password">
+        </label>
+        <p class="form-error" id="resetError2" hidden></p>
+        <menu>
+          <button type="button" class="btn-cancel" id="resetCancel2" data-i18n="btn_cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="resetSubmitBtn" data-i18n="reset_submit">Update password</button>
+        </menu>
+      </div>
+      <!-- step 3 — done -->
+      <div id="resetStep3" hidden>
+        <h3>✅ <span data-i18n="reset_done">Password updated!</span></h3>
+        <p class="sub" data-i18n="reset_done_sub">You can sign in with your new password now.</p>
+        <menu>
+          <button type="button" class="btn btn-primary" id="resetDoneBtn" data-i18n="auth_btn_signin">Sign in</button>
+        </menu>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Supabase JS client (pinned version) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.min.js"></script>
+<script>
+document.documentElement.classList.add('js');
+
+/* =============================================================
+   ArcherResults — single-file site
+   - "Create a competition" saved to your Supabase database
+     (shared online), with localStorage fallback when offline
+   - Multilingual UI (EN / MS / ES / FR / ZH)
+   - Light & dark theme
+   ============================================================= */
+(function () {
+  var STORE_KEY = 'archerresults.competitions';
+  var cardsWrap = document.getElementById('liveCards');
+  var dialog    = document.getElementById('createDialog');
+  var form      = document.getElementById('createForm');
+
+  /* ---------------- i18n ---------------- */
+  var I18N = {
+    en: {
+      nav_competitions:"Competitions", nav_calendar:"Calendar", nav_how:"How it works", nav_software:"Software", nav_contact:"Contact", nav_new:"＋ New competition",
+      hero_title:"Archery tournament results, made simple.",
+      hero_sub:"Free, open software to run archery competitions — from club shoots to international events. Create a competition in under a minute.",
+      hero_create:"＋ Create a competition", hero_view:"View competitions",
+      s1a:"tournaments run", s2a:"countries", s3a:"free — forever",
+      live_title:"Live competitions", live_all:"See all →",
+      upcoming_title:"Coming soon & just finished",
+      how_title:"Run a competition in 3 steps",
+      how1_t:"Create it", how1_p:"Click “New competition”, fill in the name, country, venue and dates. Takes less than a minute.",
+      how2_t:"Enter scores", how2_p:"Add archers and record their arrow scores as the shooting happens — per end, per distance.",
+      how3_t:"Publish results", how3_p:"Standings, brackets and rankings update automatically and can be shared with a single link.",
+      dl_title:"Get the software", dl_text:"Latest version: rev 11 — 4 November 2026. Free and open source.", dl_btn:"Download",
+      foot_tag:"© 2026 ArcherResults — a simplified tribute to ianseo.net", foot_privacy:"Privacy",
+      foot_made:"Made with 🎯 by Hadeef & Azlan",
+      dlg_title:"Create a competition", dlg_sub:"Fill in the basics — you can change everything later.",
+      lbl_name:"Competition name", lbl_country:"Country", lbl_venue:"Venue / city", lbl_starts:"Starts", lbl_ends:"Ends (optional)",
+      btn_cancel:"Cancel", btn_create:"Create competition", dlg_hint:"Saved in your browser — no account needed.",
+      dlg_hint_cloud:"Saved online — everyone can see it, no account needed.",
+      ph_name:"e.g. Spring Club Trophy 2027", ph_venue:"e.g. Riverside Archery Club",
+      tag_yours:"Yours", del_title:"Remove competition",
+      opt_int:"🌍 International",
+      auth_btn_signin:"Sign in", auth_btn_signup:"Sign up",
+      auth_email:"Email", auth_password:"Password",
+      auth_switch_signup:"New here? Create an account", auth_switch_signin:"Already have an account? Sign in",
+      auth_forgot:"Forgot password?", auth_need:"Sign in to create a competition.",
+      auth_sub_signin:"Sign in to create and manage competitions.",
+      auth_sub_signup:"Create a free account — it takes a minute.",
+      auth_confirm:"Almost there! Check your inbox to confirm your email, then sign in.",
+      signout:"Sign out",
+      reset_title:"Reset password", reset_sub:"Enter your email and we'll send you a 6-digit code.",
+      reset_send:"Send code", reset_code:"6-digit code", reset_newpw:"New password",
+      reset_sent_hint:"Code sent — check your inbox (and spam folder).", reset_submit:"Update password",
+      reset_done:"Password updated!", reset_done_sub:"You can sign in with your new password now.",
+      reset_need_email:"Please enter your email.",
+      contact_title:"Need help?", contact_sub:"Questions or issues with a competition? Reach us any time.",
+      contact_email_lbl:"Email", contact_phone_lbl:"Phone / WhatsApp"
+    },
+    ms: {
+      nav_competitions:"Pertandingan", nav_calendar:"Kalendar", nav_how:"Cara guna", nav_software:"Perisian", nav_contact:"Hubungi", nav_new:"＋ Pertandingan baharu",
+      hero_title:"Keputusan kejohanan memanah, dibuat mudah.",
+      hero_sub:"Perisian percuma dan sumber terbuka untuk anjuran memanah — dari kejohanan kelab hingga ke peringkat antarabangsa. Cipta pertandingan dalam masa kurang seminit.",
+      hero_create:"＋ Cipta pertandingan", hero_view:"Lihat pertandingan",
+      s1a:"kejohanan dianjurkan", s2a:"negara", s3a:"percuma selamanya",
+      live_title:"Pertandingan sedang berjalan", live_all:"Lihat semua →",
+      upcoming_title:"Akan datang & baru selesai",
+      how_title:"Anjurkan pertandingan dalam 3 langkah",
+      how1_t:"Cipta", how1_p:"Klik “Pertandingan baharu”, isi nama, negara, tempat dan tarikh. Kurang seminit.",
+      how2_t:"Masukkan skor", how2_p:"Tambah pemanah dan rekod skor setiap anak panah sepanjang pertandingan — setiap end dan jarak.",
+      how3_t:"Terbitkan keputusan", how3_p:"Kedudukan, cabutan dan ranking dikira secara automatik serta boleh dikongsi dengan satu pautan.",
+      dl_title:"Dapatkan perisian", dl_text:"Versi terkini: rev 11 — 4 November 2026. Percuma dan sumber terbuka.", dl_btn:"Muat turun",
+      foot_tag:"© 2026 ArcherResults — penghormatan ringkas kepada ianseo.net", foot_privacy:"Privasi",
+      foot_made:"Dibuat dengan 🎯 oleh Hadeef & Azlan",
+      dlg_title:"Cipta pertandingan", dlg_sub:"Isi maklumat asas — semuanya boleh diubah kemudian.",
+      lbl_name:"Nama pertandingan", lbl_country:"Negara", lbl_venue:"Tempat / bandar", lbl_starts:"Mula", lbl_ends:"Tamat (pilihan)",
+      btn_cancel:"Batal", btn_create:"Cipta pertandingan", dlg_hint:"Disimpan dalam pelayar anda — tiada akaun diperlukan.",
+      dlg_hint_cloud:"Disimpan dalam talian — semua orang boleh lihat, tiada akaun diperlukan.",
+      ph_name:"cth. Piala Kelab Spring 2027", ph_venue:"cth. Kelab Memanah Riverside",
+      tag_yours:"Milik anda", del_title:"Buang pertandingan",
+      opt_int:"🌍 Antarabangsa",
+      auth_btn_signin:"Log masuk", auth_btn_signup:"Daftar",
+      auth_email:"E-mel", auth_password:"Kata laluan",
+      auth_switch_signup:"Baru di sini? Cipta akaun", auth_switch_signin:"Dah ada akaun? Log masuk",
+      auth_forgot:"Lupa kata laluan?", auth_need:"Log masuk untuk mencipta pertandingan.",
+      auth_sub_signin:"Log masuk untuk mencipta dan menguruskan pertandingan.",
+      auth_sub_signup:"Cipta akaun percuma — kurang seminit sahaja.",
+      auth_confirm:"Hampir siap! Semak e-mel anda untuk pengesahan, kemudian log masuk.",
+      signout:"Log keluar",
+      reset_title:"Set semula kata laluan", reset_sub:"Masukkan e-mel anda dan kami akan hantar kod 6 digit.",
+      reset_send:"Hantar kod", reset_code:"Kod 6 digit", reset_newpw:"Kata laluan baharu",
+      reset_sent_hint:"Kod dihantar — semak peti masuk (dan spam).", reset_submit:"Kemas kini kata laluan",
+      reset_done:"Kata laluan dikemas kini!", reset_done_sub:"Anda boleh log masuk dengan kata laluan baharu sekarang.",
+      reset_need_email:"Sila masukkan e-mel anda.",
+      contact_title:"Perlukan bantuan?", contact_sub:"Ada soalan atau masalah tentang pertandingan? Hubungi kami bila-bila masa.",
+      contact_email_lbl:"E-mel", contact_phone_lbl:"Telefon / WhatsApp"
+    },
+    es: {
+      nav_competitions:"Competiciones", nav_calendar:"Calendario", nav_how:"Cómo funciona", nav_software:"Software", nav_contact:"Contacto", nav_new:"＋ Nueva competición",
+      hero_title:"Resultados de tiro con arco, simplificados.",
+      hero_sub:"Software gratuito y de código abierto para gestionar competiciones de tiro con arco — de clubes a eventos internacionales. Crea una competición en menos de un minuto.",
+      hero_create:"＋ Crear competición", hero_view:"Ver competiciones",
+      s1a:"torneos organizados", s2a:"países", s3a:"gratis para siempre",
+      live_title:"Competiciones en vivo", live_all:"Ver todas →",
+      upcoming_title:"Próximas y recién terminadas",
+      how_title:"Organiza una competición en 3 pasos",
+      how1_t:"Créala", how1_p:"Haz clic en “Nueva competición” y completa nombre, país, sede y fechas. Menos de un minuto.",
+      how2_t:"Registra puntuaciones", how2_p:"Añade arqueros y registra cada flecha durante la competición — por end y por distancia.",
+      how3_t:"Publica resultados", how3_p:"Clasificaciones, cuadros y rankings se actualizan solos y se comparten con un enlace.",
+      dl_title:"Obtén el software", dl_text:"Última versión: rev 11 — 4 de noviembre de 2026. Gratis y de código abierto.", dl_btn:"Descargar",
+      foot_tag:"© 2026 ArcherResults — un homenaje simplificado a ianseo.net", foot_privacy:"Privacidad",
+      foot_made:"Hecho con 🎯 por Hadeef y Azlan",
+      dlg_title:"Crear una competición", dlg_sub:"Rellena lo básico — podrás cambiarlo todo después.",
+      lbl_name:"Nombre de la competición", lbl_country:"País", lbl_venue:"Sede / ciudad", lbl_starts:"Empieza", lbl_ends:"Termina (opcional)",
+      btn_cancel:"Cancelar", btn_create:"Crear competición", dlg_hint:"Se guarda en tu navegador — no necesita cuenta.",
+      dlg_hint_cloud:"Se guarda en línea — todos pueden verla, sin necesidad de cuenta.",
+      ph_name:"p. ej. Trofeo de Club de Primavera 2027", ph_venue:"p. ej. Club de Tiro con Arco Riverside",
+      tag_yours:"Tuya", del_title:"Eliminar competición",
+      opt_int:"🌍 Internacional",
+      auth_btn_signin:"Iniciar sesión", auth_btn_signup:"Crear cuenta",
+      auth_email:"Correo electrónico", auth_password:"Contraseña",
+      auth_switch_signup:"¿Nuevo por aquí? Crea una cuenta", auth_switch_signin:"¿Ya tienes cuenta? Inicia sesión",
+      auth_forgot:"¿Olvidaste tu contraseña?", auth_need:"Inicia sesión para crear una competición.",
+      auth_sub_signin:"Inicia sesión para crear y gestionar competiciones.",
+      auth_sub_signup:"Crea una cuenta gratuita — menos de un minuto.",
+      auth_confirm:"¡Casi listo! Revisa tu correo para confirmar tu cuenta y luego inicia sesión.",
+      signout:"Cerrar sesión",
+      reset_title:"Restablecer contraseña", reset_sub:"Escribe tu correo y te enviaremos un código de 6 dígitos.",
+      reset_send:"Enviar código", reset_code:"Código de 6 dígitos", reset_newpw:"Nueva contraseña",
+      reset_sent_hint:"Código enviado — revisa tu bandeja (y el spam).", reset_submit:"Actualizar contraseña",
+      reset_done:"¡Contraseña actualizada!", reset_done_sub:"Ya puedes iniciar sesión con tu nueva contraseña.",
+      reset_need_email:"Escribe tu correo electrónico.",
+      contact_title:"¿Necesitas ayuda?", contact_sub:"¿Preguntas o problemas con una competición? Escríbenos cuando quieras.",
+      contact_email_lbl:"Correo electrónico", contact_phone_lbl:"Teléfono / WhatsApp"
+    },
+    fr: {
+      nav_competitions:"Compétitions", nav_calendar:"Calendrier", nav_how:"Fonctionnement", nav_software:"Logiciel", nav_contact:"Contact", nav_new:"＋ Nouvelle compétition",
+      hero_title:"Les résultats de tir à l'arc, en toute simplicité.",
+      hero_sub:"Logiciel gratuit et open source pour gérer les compétitions de tir à l'arc — du club aux événements internationaux. Créez une compétition en moins d'une minute.",
+      hero_create:"＋ Créer une compétition", hero_view:"Voir les compétitions",
+      s1a:"tournois organisés", s2a:"pays", s3a:"gratuit pour toujours",
+      live_title:"Compétitions en direct", live_all:"Tout voir →",
+      upcoming_title:"À venir & tout juste terminées",
+      how_title:"Organisez une compétition en 3 étapes",
+      how1_t:"Créez-la", how1_p:"Cliquez sur « Nouvelle compétition », remplissez nom, pays, lieu et dates. Moins d'une minute.",
+      how2_t:"Saisissez les scores", how2_p:"Ajoutez les archers et enregistrez chaque flèche pendant le tir — par end et par distance.",
+      how3_t:"Publiez les résultats", how3_p:"Classements, tableaux et rankings se mettent à jour automatiquement, partageables via un simple lien.",
+      dl_title:"Obtenir le logiciel", dl_text:"Dernière version : rev 11 — 4 novembre 2026. Gratuit et open source.", dl_btn:"Télécharger",
+      foot_tag:"© 2026 ArcherResults — un hommage simplifié à ianseo.net", foot_privacy:"Confidentialité",
+      foot_made:"Fait avec 🎯 par Hadeef et Azlan",
+      dlg_title:"Créer une compétition", dlg_sub:"Remplissez l'essentiel — tout est modifiable ensuite.",
+      lbl_name:"Nom de la compétition", lbl_country:"Pays", lbl_venue:"Lieu / ville", lbl_starts:"Début", lbl_ends:"Fin (facultatif)",
+      btn_cancel:"Annuler", btn_create:"Créer la compétition", dlg_hint:"Enregistré dans votre navigateur — aucun compte requis.",
+      dlg_hint_cloud:"Enregistré en ligne — visible par tous, aucun compte requis.",
+      ph_name:"ex. Trophée du Club de Printemps 2027", ph_venue:"ex. Club de tir à l'arc Riverside",
+      tag_yours:"La vôtre", del_title:"Supprimer la compétition",
+      opt_int:"🌍 International",
+      auth_btn_signin:"Se connecter", auth_btn_signup:"S'inscrire",
+      auth_email:"E-mail", auth_password:"Mot de passe",
+      auth_switch_signup:"Nouveau ici ? Créez un compte", auth_switch_signin:"Déjà un compte ? Connectez-vous",
+      auth_forgot:"Mot de passe oublié ?", auth_need:"Connectez-vous pour créer une compétition.",
+      auth_sub_signin:"Connectez-vous pour créer et gérer des compétitions.",
+      auth_sub_signup:"Créez un compte gratuit — moins d'une minute.",
+      auth_confirm:"Presque fini ! Vérifiez votre boîte mail pour confirmer votre compte, puis connectez-vous.",
+      signout:"Se déconnecter",
+      reset_title:"Réinitialiser le mot de passe", reset_sub:"Entrez votre e-mail et nous vous enverrons un code à 6 chiffres.",
+      reset_send:"Envoyer le code", reset_code:"Code à 6 chiffres", reset_newpw:"Nouveau mot de passe",
+      reset_sent_hint:"Code envoyé — vérifiez votre boîte (et les indésirables).", reset_submit:"Mettre à jour le mot de passe",
+      reset_done:"Mot de passe mis à jour !", reset_done_sub:"Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+      reset_need_email:"Veuillez entrer votre e-mail.",
+      contact_title:"Besoin d'aide ?", contact_sub:"Des questions ou un souci avec une compétition ? Contactez-nous à tout moment.",
+      contact_email_lbl:"E-mail", contact_phone_lbl:"Téléphone / WhatsApp"
+    },
+    zh: {
+      nav_competitions:"比赛", nav_calendar:"赛程", nav_how:"使用方法", nav_software:"软件", nav_contact:"联系", nav_new:"＋ 新建比赛",
+      hero_title:"射箭比赛成绩，简单至上。",
+      hero_sub:"免费开源的射箭赛事成绩管理软件——从俱乐部比赛到国际大赛。一分钟创建比赛。",
+      hero_create:"＋ 创建比赛", hero_view:"查看比赛",
+      s1a:"场赛事已举办", s2a:"个国家/地区", s3a:"永久免费",
+      live_title:"正在进行的比赛", live_all:"查看全部 →",
+      upcoming_title:"即将开始 & 刚刚结束",
+      how_title:"三步举办一场比赛",
+      how1_t:"创建比赛", how1_p:"点击“新建比赛”，填写名称、国家、场地和日期，不到一分钟。",
+      how2_t:"录入成绩", how2_p:"添加选手，比赛中逐节、逐距离记录每一支箭的得分。",
+      how3_t:"发布成绩", how3_p:"排名、对阵表自动生成，一键分享链接。",
+      dl_title:"获取软件", dl_text:"最新版本：rev 11 — 2026年11月4日。免费开源。", dl_btn:"下载",
+      foot_tag:"© 2026 ArcherResults — ianseo.net 简化致敬版", foot_privacy:"隐私",
+      foot_made:"由 Hadeef 和 Azlan 用 🎯 打造",
+      dlg_title:"创建比赛", dlg_sub:"填写基本信息——之后随时可修改。",
+      lbl_name:"比赛名称", lbl_country:"国家/地区", lbl_venue:"场地 / 城市", lbl_starts:"开始日期", lbl_ends:"结束日期（可选）",
+      btn_cancel:"取消", btn_create:"创建比赛", dlg_hint:"保存在你的浏览器中——无需注册账号。",
+      dlg_hint_cloud:"保存在云端——所有人可见，无需注册账号。",
+      ph_name:"例如：春季俱乐部杯 2027", ph_venue:"例如：滨江射箭俱乐部",
+      tag_yours:"你创建的", del_title:"删除比赛",
+      opt_int:"🌍 国际",
+      auth_btn_signin:"登录", auth_btn_signup:"注册",
+      auth_email:"邮箱", auth_password:"密码",
+      auth_switch_signup:"还没有账号？注册一个", auth_switch_signin:"已有账号？去登录",
+      auth_forgot:"忘记密码？", auth_need:"请先登录才能创建比赛。",
+      auth_sub_signin:"登录后即可创建和管理比赛。",
+      auth_sub_signup:"创建免费账号——只需一分钟。",
+      auth_confirm:"快好了！请查收邮箱完成验证，然后再登录。",
+      signout:"退出登录",
+      reset_title:"重置密码", reset_sub:"输入你的邮箱，我们会发送 6 位验证码。",
+      reset_send:"发送验证码", reset_code:"6 位验证码", reset_newpw:"新密码",
+      reset_sent_hint:"验证码已发送——请查收邮箱（和垃圾邮件夹）。", reset_submit:"更新密码",
+      reset_done:"密码已更新！", reset_done_sub:"现在可以用新密码登录了。",
+      reset_need_email:"请输入你的邮箱。",
+      contact_title:"需要帮助？", contact_sub:"对比赛有疑问或遇到问题？随时联系我们。",
+      contact_email_lbl:"邮箱", contact_phone_lbl:"电话 / WhatsApp"
+    }
+  };
+
+  var LOCALES = { en: "en-GB", ms: "ms-MY", es: "es-ES", fr: "fr-FR", zh: "zh-CN" };
+
+  /* pick saved language, else guess from browser */
+  var LANG = 'en';
+  try {
+    var saved = localStorage.getItem('archerresults.lang');
+    if (saved && I18N[saved]) LANG = saved;
+    else {
+      var nav = (navigator.language || 'en').toLowerCase();
+      ['ms','es','fr','zh'].some(function (l) { if (nav.indexOf(l) === 0) { LANG = l; return true; } return false; });
+    }
+  } catch (e) {}
+
+  function applyLang() {
+    var dict = I18N[LANG];
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var v = dict[el.getAttribute('data-i18n')];
+      if (v != null) el.textContent = v;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function (el) {
+      var v = dict[el.getAttribute('data-i18n-ph')];
+      if (v != null) el.setAttribute('placeholder', v);
+    });
+    document.documentElement.lang = LOCALES[LANG];
+    document.getElementById('langSel').value = LANG;
+    // hint text depends on connection state (online → cloud hint)
+    var hint = document.querySelector('.hint');
+    if (hint) hint.textContent = (online && dict.dlg_hint_cloud) || dict.dlg_hint;
+  }
+
+  document.getElementById('langSel').addEventListener('change', function () {
+    LANG = this.value;
+    try { localStorage.setItem('archerresults.lang', LANG); } catch (e) {}
+    applyLang();
+  });
+
+  /* ---------------- theme ---------------- */
+  var themeBtn = document.getElementById('themeBtn');
+  function syncThemeBtn() {
+    themeBtn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+  }
+  themeBtn.addEventListener('click', function () {
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (dark) document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', 'dark');
+    try { localStorage.setItem('archerresults.theme', dark ? 'light' : 'dark'); } catch (e) {}
+    syncThemeBtn();
+  });
+  syncThemeBtn();
+
+  /* ---------------- Supabase cloud + localStorage fallback ---------------- */
+  var SUPABASE_URL = 'https://gkrqeccpccciywnjkcpn.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dUzZ5nFruEiQ_hVSvUF3Rg_0AGEqg-e'; // publishable key — safe for public sites
+  var sb = null;
+  if (window.supabase) {
+    try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { sb = null; }
+  }
+  var online = false;
+
+  // Google Apps Script web-app URL that emails password-reset codes
+  // (setup guide: archerresults-password-reset.gs). '' = feature off.
+  var RESET_ENDPOINT = '';
+
+  var currentUser = null;     // Supabase auth user, or null
+  var pendingCreate = false;  // open the create dialog right after sign-in
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function save(list) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); }
+    catch (e) { /* private mode etc. — ignore */ }
+  }
+
+  function fmtDate(start, end) {
+    var loc = LOCALES[LANG];
+    function f(iso, withYear) {
+      var d = new Date(iso + 'T00:00:00');
+      var opts = withYear ? { day: 'numeric', month: 'short', year: 'numeric' }
+                          : { day: 'numeric', month: 'short' };
+      return d.toLocaleDateString(loc, opts);
+    }
+    if (!end || end === start) return f(start, true);
+    var sameYear = start.slice(0, 4) === end.slice(0, 4);
+    return f(start, !sameYear) + ' – ' + f(end, true);
+  }
+
+  function toCard(row) {
+    return {
+      id: row.id, name: row.name, flag: row.flag || '🌍',
+      where: row.venue || '', start: row.start_date, end: row.end_date,
+      uid: row.user_id, cloud: true
+    };
+  }
+
+  function buildCard(c) {
+    var card = document.createElement('div');
+    card.className = 'card mine';
+    // only the owner may delete a cloud card; local (offline) cards are always theirs
+    var canDelete = !c.cloud || (currentUser && c.uid && c.uid === currentUser.id);
+    var html =
+      '<div class="flag">' + c.flag + '</div>' +
+      '<h3></h3>' +
+      '<div class="where"></div>' +
+      '<div class="when"></div>';
+    if (canDelete) {
+      html =
+        '<button class="card-del" title="' + I18N[LANG].del_title + '" aria-label="' + I18N[LANG].del_title + '">×</button>' +
+        html +
+        '<span class="mine-tag">' + I18N[LANG].tag_yours + '</span>';
+    }
+    card.innerHTML = html;
+    // textContent for user-entered fields (never inject raw HTML)
+    card.querySelector('h3').textContent     = c.name;
+    card.querySelector('.where').textContent = c.where || '';
+    card.querySelector('.when').textContent  = fmtDate(c.start, c.end);
+
+    var del = card.querySelector('.card-del');
+    if (del) del.addEventListener('click', function () {
+      if (c.cloud && sb) {
+        // stored in the cloud → delete there
+        sb.from('competitions').delete().eq('id', c.id).then(function (res) {
+          if (!res.error) card.remove();
+        });
+      } else {
+        // stored locally → delete locally
+        var list = load().filter(function (x) { return x.id !== c.id; });
+        save(list);
+        card.remove();
+      }
+    });
+    return card;
+  }
+
+  function renderAll() {
+    load().slice().reverse().forEach(function (c) {   // newest first
+      cardsWrap.prepend(buildCard(c));
+    });
+  }
+
+  // fetch cloud competitions; on first connect, migrate locally saved ones up
+  async function pullCloud(isRetry) {
+    cardsWrap.querySelectorAll('.card.mine').forEach(function (el) { el.remove(); });
+    if (!sb) return false;
+    var res = await sb.from('competitions')
+                      .select('*')
+                      .order('created_at', { ascending: false })
+                      .limit(100);
+    if (res.error) { online = false; applyLang(); return false; }
+    online = true;
+
+    // one-time migration: push locally saved competitions to the cloud
+    // (only possible while signed in — RLS ties rows to the account)
+    var local = load();
+    if (local.length && currentUser && !isRetry) {
+      var payload = local.map(function (c) {
+        return { name: c.name, flag: c.flag, country: c.country || null,
+                 venue: c.where || null, start_date: c.start, end_date: c.end || null };
+      });
+      var up = await sb.from('competitions').insert(payload);
+      if (!up.error) {
+        try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+        return pullCloud(true);   // re-fetch so migrated entries appear
+      }
+      // migration failed (e.g. missing grants) → keep them local; still show cloud
+    }
+
+    res.data.forEach(function (row) { cardsWrap.prepend(buildCard(toCard(row))); });
+    if (load().length) renderAll();   // anything that couldn't migrate stays local
+    applyLang();                      // refresh hint ("saved online")
+    return true;
+  }
+
+  // re-render user cards (e.g. after sign-in/sign-out, so × buttons match ownership)
+  function rerenderUserCards() {
+    cardsWrap.querySelectorAll('.card.mine').forEach(function (el) { el.remove(); });
+    if (sb) pullCloud(true); else renderAll();
+  }
+
+
+  /* ---------------- dialog wiring ---------------- */
+  function openCreateDialog() {
+    form.reset();
+    dialog.showModal();
+    form.querySelector('input[name="name"]').focus();
+  }
+  document.querySelectorAll('[data-open-create]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      // creating a competition requires an account
+      if (!currentUser) { pendingCreate = true; openAuthDialog('signin', true); return; }
+      openCreateDialog();
+    });
+  });
+  document.getElementById('cancelCreate').addEventListener('click', function () {
+    dialog.close();
+  });
+
+  form.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    var fd = new FormData(form);
+    var flagParts = (fd.get('flag') || '🌍|International').split('|');
+
+    var start = fd.get('start');
+    var end   = fd.get('end');
+    if (end && start && end < start) end = start;   // keep dates sensible
+
+    var comp = {
+      id:      'c' + Date.now(),
+      name:    (fd.get('name') || '').trim(),
+      flag:    flagParts[0],
+      country: flagParts[1] || null,
+      where:   (fd.get('where') || '').trim(),
+      start:   start,
+      end:     end
+    };
+    if (!comp.name) return;
+
+    // try the cloud first…
+    if (online && sb) {
+      var res = await sb.from('competitions').insert({
+        name: comp.name, flag: comp.flag, country: comp.country,
+        venue: comp.where || null, start_date: comp.start, end_date: comp.end || null
+      }).select().single();
+      if (!res.error) {
+        cardsWrap.prepend(buildCard(toCard(res.data)));
+        dialog.close();
+        document.getElementById('live').scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      // cloud write failed → fall back to saving in this browser
+    }
+
+    // …or keep it in this browser (offline fallback)
+    var list = load();
+    list.push(comp);
+    save(list);
+    cardsWrap.prepend(buildCard(comp));
+    dialog.close();
+    document.getElementById('live').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  /* ---------------- auth: sign in / sign up / reset ---------------- */
+  var authDialog   = document.getElementById('authDialog');
+  var authForm     = document.getElementById('authForm');
+  var authViews    = document.getElementById('authViews');
+  var resetViews   = document.getElementById('resetViews');
+  var authTitle    = document.getElementById('authTitle');
+  var authSub      = document.getElementById('authSub');
+  var authError    = document.getElementById('authError');
+  var authSubmitBt = document.getElementById('authSubmit');
+  var switchBtn    = document.getElementById('switchAuthMode');
+  var forgotBtn    = document.getElementById('forgotBtn');
+  var signInBtn    = document.getElementById('signInBtn');
+  var signOutBtn   = document.getElementById('signOutBtn');
+  var userChip     = document.getElementById('userChip');
+  var userEmailEl  = document.getElementById('userEmail');
+  var remailInput  = authForm.querySelector('input[name="remail"]');
+
+  var authMode = 'signin';   // 'signin' | 'signup'
+
+  function showErr(el, msg, ok) { el.textContent = msg; el.classList.toggle('ok', !!ok); el.hidden = false; }
+  function hideErr(el) { el.hidden = true; el.classList.remove('ok'); }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    hideErr(authError);
+    if (mode === 'signup') {
+      authTitle.textContent    = I18N[LANG].auth_btn_signup;
+      authSub.textContent      = I18N[LANG].auth_sub_signup;
+      authSubmitBt.textContent = I18N[LANG].auth_btn_signup;
+      switchBtn.textContent    = I18N[LANG].auth_switch_signin;
+      authForm.querySelector('input[name="password"]').setAttribute('autocomplete', 'new-password');
+    } else {
+      authTitle.textContent    = I18N[LANG].auth_btn_signin;
+      authSub.textContent      = I18N[LANG].auth_sub_signin;
+      authSubmitBt.textContent = I18N[LANG].auth_btn_signin;
+      switchBtn.textContent    = I18N[LANG].auth_switch_signup;
+      authForm.querySelector('input[name="password"]').setAttribute('autocomplete', 'current-password');
+    }
+    forgotBtn.hidden = mode !== 'signin' || !RESET_ENDPOINT;
+  }
+
+  function openAuthDialog(mode, needMsg) {
+    setAuthMode(mode);
+    if (needMsg) authSub.textContent = I18N[LANG].auth_need;
+    resetViews.hidden = true;
+    authViews.hidden = false;
+    authForm.reset();
+    authDialog.showModal();
+    authForm.querySelector('input[name="email"]').focus();
+  }
+  function closeAuth() {
+    authDialog.close();
+    resetViews.hidden = true;
+    authViews.hidden = false;
+    hideErr(authError);
+  }
+
+  function syncAuthUI() {
+    var signedIn = !!currentUser;
+    signInBtn.hidden  = signedIn;
+    userChip.hidden   = !signedIn;
+    signOutBtn.hidden = !signedIn;
+    if (signedIn) userEmailEl.textContent = currentUser.email || '';
+  }
+
+  signInBtn.addEventListener('click', function () { openAuthDialog('signin'); });
+  signOutBtn.addEventListener('click', function () { if (sb) sb.auth.signOut(); });
+  document.getElementById('authCancel').addEventListener('click', closeAuth);
+  switchBtn.addEventListener('click', function () {
+    setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+  });
+
+  authForm.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    if (authViews.hidden) return;   // reset views use buttons, not submit
+    var fd = new FormData(authForm);
+    var email = (fd.get('email') || '').trim();
+    var password = String(fd.get('password') || '');
+    hideErr(authError);
+    authSubmitBt.disabled = true;
+    try {
+      if (authMode === 'signup') {
+        var r = await sb.auth.signUp({ email: email, password: password });
+        if (r.error) throw r.error;
+        if (r.data && r.data.session) { closeAuth(); return; }   // state event handles the rest
+        showErr(authError, I18N[LANG].auth_confirm, true);       // confirmation email required
+      } else {
+        var r2 = await sb.auth.signInWithPassword({ email: email, password: password });
+        if (r2.error) throw r2.error;
+        closeAuth();   // SIGNED_IN event updates UI + cards
+      }
+    } catch (err) {
+      showErr(authError, (err && err.message) || 'Error');
+    } finally {
+      authSubmitBt.disabled = false;
+    }
+  });
+
+  /* ---------------- forgot password (via Apps Script) ---------------- */
+  function showResetStep(n) {
+    document.getElementById('resetStep1').hidden = n !== 1;
+    document.getElementById('resetStep2').hidden = n !== 2;
+    document.getElementById('resetStep3').hidden = n !== 3;
+    hideErr(document.getElementById('resetError1'));
+    hideErr(document.getElementById('resetError2'));
+  }
+  function backToSignIn() {
+    resetViews.hidden = true;
+    authViews.hidden = false;
+    setAuthMode('signin');
+  }
+
+  forgotBtn.addEventListener('click', function () {
+    remailInput.value = authForm.querySelector('input[name="email"]').value || '';
+    authViews.hidden = true;
+    showResetStep(1);
+    resetViews.hidden = false;
+  });
+  document.getElementById('resetBack').addEventListener('click', backToSignIn);
+  document.getElementById('resetCancel2').addEventListener('click', backToSignIn);
+  document.getElementById('resetDoneBtn').addEventListener('click', backToSignIn);
+
+  function postReset(payload) {
+    return fetch(RESET_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // simple request → no CORS preflight
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); });
+  }
+
+  document.getElementById('sendCodeBtn').addEventListener('click', async function () {
+    var btn = this;
+    var errEl = document.getElementById('resetError1');
+    var email = (remailInput.value || '').trim();
+    hideErr(errEl);
+    if (!email) { showErr(errEl, I18N[LANG].reset_need_email); return; }
+    btn.disabled = true;
+    try {
+      var res = await postReset({ action: 'send', email: email });
+      if (res && res.success) showResetStep(2);
+      else showErr(errEl, (res && res.error) || 'Could not send the code');
+    } catch (e) {
+      showErr(errEl, 'Reset service unreachable — check RESET_ENDPOINT');
+    } finally { btn.disabled = false; }
+  });
+
+  document.getElementById('resetSubmitBtn').addEventListener('click', async function () {
+    var btn = this;
+    var errEl = document.getElementById('resetError2');
+    var code = (authForm.querySelector('input[name="rcode"]').value || '').trim();
+    var pw   = authForm.querySelector('input[name="rpassword"]').value || '';
+    hideErr(errEl);
+    btn.disabled = true;
+    try {
+      var res = await postReset({
+        action: 'reset',
+        email: (remailInput.value || '').trim(),
+        code: code,
+        password: pw
+      });
+      if (res && res.success) showResetStep(3);
+      else showErr(errEl, (res && res.error) || 'Could not reset the password');
+    } catch (e) {
+      showErr(errEl, 'Reset service unreachable — check RESET_ENDPOINT');
+    } finally { btn.disabled = false; }
+  });
+
+  /* ---------------- small niceties ---------------- */
+  // placeholder links shouldn't jump to top
+  document.querySelectorAll('a[href="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); });
+  });
+
+  // scroll reveal
+  var revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.12 });
+    revealEls.forEach(function (el) { io.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------------- init ---------------- */
+  applyLang();
+  syncAuthUI();
+
+  function boot() {
+    pullCloud().then(function (ok) { if (!ok) renderAll(); });
+  }
+
+  if (sb) {
+    sb.auth.getSession().then(function (res) {
+      currentUser = (res.data && res.data.session && res.data.session.user) || null;
+      syncAuthUI();
+    }).catch(function () {});
+    sb.auth.onAuthStateChange(function (ev, session) {
+      currentUser = (session && session.user) || null;
+      syncAuthUI();
+      if (ev === 'INITIAL_SESSION') return;   // boot() does the first render
+      rerenderUserCards();
+      if (currentUser && pendingCreate) {
+        pendingCreate = false;
+        openCreateDialog();
+      }
+    });
+    boot();
+  } else {
+    boot();
+  }
+})();
+</script>
+
+</body>
+</html>
